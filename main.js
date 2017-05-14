@@ -1,10 +1,9 @@
 document.addEventListener("DOMContentLoaded", function() {
 
-    var heightScalingMultiple = 0.8;
-    var widthScalingMultiple = 0.75;
+    var scalingMultiple = 0.75;
 
-    var gameHeight = document.body.clientHeight * heightScalingMultiple;
-    var gameWidth = document.body.clientWidth * widthScalingMultiple;
+    var gameHeight = document.body.clientHeight * scalingMultiple;
+    var gameWidth = document.body.clientWidth;
 
     // Create our 'main' state that will contain the game
     var mainState = {
