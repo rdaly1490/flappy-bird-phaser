@@ -1,9 +1,10 @@
 document.addEventListener("DOMContentLoaded", function() {
 
-    var scalingMultiple = 0.75;
+    var heightScalingMultiple = 0.8;
+    var widthScalingMultiple = 0.75;
 
-    var gameHeight = document.body.clientHeight * scalingMultiple;
-    var gameWidth = document.body.clientWidth * scalingMultiple;
+    var gameHeight = document.body.clientHeight * heightScalingMultiple;
+    var gameWidth = document.body.clientWidth * widthScalingMultiple;
 
     // Create our 'main' state that will contain the game
     var mainState = {
@@ -12,7 +13,12 @@ document.addEventListener("DOMContentLoaded", function() {
             // That's where we load the images and sounds
 
             // Load the bird sprite
-            game.load.image('bird', 'assets/bird.png');
+            // game.load.image('bird', 'assets/bird.png');
+
+            // load plane spritesheet for animation
+            game.load.spritesheet('plane', 'assets/planes.png', 87.35, 73.14, 21);
+
+            game.load.image('background', 'assets/background.png');
 
             game.load.image('pipe', 'assets/pipe.png');
 
@@ -25,15 +31,25 @@ document.addEventListener("DOMContentLoaded", function() {
             // Here we set up the game, display sprites, etc.
 
             // Change the background color of the game to blue
-            game.stage.backgroundColor = '#71c5cf';
+            // game.stage.backgroundColor = '#71c5cf';
+
+            // position background png at 0,0.
+            // give dimensions you want background to cover, will tile if needed
+            game.add.tileSprite(0, 0, gameWidth, gameHeight, 'background');
 
             // Set the physics system
             game.physics.startSystem(Phaser.Physics.ARCADE);
 
-            // Display the bird at the position x=100 and y=245
-            this.bird = game.add.sprite(100, 245, 'bird');
+            // Display the plane at the position x=100 and y=245
+            this.plane = game.add.sprite(100, 245, 'plane');
+
+            var animationFPS = 15
+            // plays all the frames, at 15 frame per second, looping.
+            this.plane.animations.add('fly', [1,9,12], animationFPS, true);
+            this.plane.play('fly');
+
             // Move the anchor for rotation to the left and downward
-            this.bird.anchor.setTo(-0.2, 0.5);
+            this.plane.anchor.setTo(-0.2, 0.5);
 
             this.pipes = game.add.group();
 
@@ -49,14 +65,14 @@ document.addEventListener("DOMContentLoaded", function() {
             // add scoring to top left of window
             this.score = 0;
             this.labelScore = game.add.text(20, 20, "0",
-                { font: "30px Arial", fill: "#ffffff" });
+                { font: "30px Arial", fill: "#000" });
 
-            // Add physics to the bird
+            // Add physics to the plane
             // Needed for: movements, gravity, collisions, etc.
-            game.physics.arcade.enable(this.bird);
+            game.physics.arcade.enable(this.plane);
 
-            // Add gravity to the bird to make it fall
-            this.bird.body.gravity.y = 1000;
+            // Add gravity to the plane to make it fall
+            this.plane.body.gravity.y = 1000;
 
             // Call the 'jump' function when the spacekey is hit
             var spaceKey = game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR);
@@ -67,32 +83,40 @@ document.addEventListener("DOMContentLoaded", function() {
             // This function is called 60 times per second
             // It contains the game's logic
 
-            // The bird slowly rotates downward, up to a certain point
-            if (this.bird.angle < 20) {
-                this.bird.angle += 1;
+            // The plane slowly rotates downward, up to a certain point
+            if (this.plane.angle < 20) {
+                this.plane.angle += 1;
             }
 
             /*
-            call hitPipe() each time the bird collides
+            call hitPipe() each time the plane collides
             with a pipe from the pipes group
             */
-            game.physics.arcade.overlap(this.bird, this.pipes, this.hitPipe, null, this);
+            game.physics.arcade.overlap(this.plane, this.pipes, this.hitPipe, null, this);
 
-            // If the bird is out of the screen (too high or too low)
+            // If the plane is out of the screen (too high or too low)
             // Call the 'restartGame' function
-            if (this.bird.y < 0 || this.bird.y > gameHeight) {
+            if (this.plane.y < 0 || this.plane.y > gameHeight) {
                 this.restartGame();
             }
+
+            // forEachAlive lets us iterate through all active pipes in the game
+            // if the pipe is offscreen, we kill it
+            this.pipes.forEachAlive(function (pipe) {
+                if (pipe.x + pipe.width < game.world.bounds.left) {
+                    pipe.kill();
+                }
+            });
         },
 
         jump: function() {
 
-            // bird can't jump if game is over
-            if (this.bird.alive === false) return;
+            // plane can't jump if game is over
+            if (this.plane.alive === false) return;
 
-            // Create an animation on the bird to make his angle rotate up when jumping
-            var animation = game.add.tween(this.bird);
-            // Change the angle of the bird to -20° in 100 milliseconds
+            // Create an animation on the plane to make his angle rotate up when jumping
+            var animation = game.add.tween(this.plane);
+            // Change the angle of the plane to -20° in 100 milliseconds
             animation.to({angle: -20}, 100);
             // And start the animation
             animation.start();
@@ -100,8 +124,8 @@ document.addEventListener("DOMContentLoaded", function() {
             // play the jump sound
             this.jumpSound.play();
 
-            // Add a vertical velocity to the bird
-            this.bird.body.velocity.y = -350;
+            // Add a vertical velocity to the plane
+            this.plane.body.velocity.y = -350;
         },
 
         restartGame: function() {
@@ -137,7 +161,7 @@ document.addEventListener("DOMContentLoaded", function() {
             var numberOfPipes = Math.floor(gameHeight / blockHeight);
 
 
-            var sizeOfGap = 3;
+            var sizeOfGap = 4;
 
             // This will be the starting hole position/index
             // start {sizeOfGap} less than max blocks so hole wont overflow index range
@@ -167,12 +191,12 @@ document.addEventListener("DOMContentLoaded", function() {
         },
 
         hitPipe: function() {
-            // If the bird has already hit a pipe, do nothing
-            // It means the bird is already falling off the screen from losing
-            if (this.bird.alive === false) return;
+            // If the plane has already hit a pipe, do nothing
+            // It means the plane is already falling off the screen from losing
+            if (this.plane.alive === false) return;
 
-            // Set the alive property of the bird to false
-            this.bird.alive = false;
+            // Set the alive property of the plane to false
+            this.plane.alive = false;
 
             // Prevent new pipes from appearing
             game.time.events.remove(this.timer);
